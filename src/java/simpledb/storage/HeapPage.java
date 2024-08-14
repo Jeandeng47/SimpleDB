@@ -72,9 +72,11 @@ public class HeapPage implements Page {
         @return the number of tuples on this page
     */
     private int getNumTuples() {        
-        // some code goes here
-        return 0;
-
+        // size of tuple (bit) = tuple size (Byte) * 8 (bits) + 1 (bit)
+        // number of tuples / page = Floor(size of page size / size of tuple)
+        int tupleSize = td.getSize() * 8 + 1;
+        int pageSize =  BufferPool.getPageSize() * 8;
+        return pageSize / tupleSize;
     }
 
     /**
@@ -82,9 +84,11 @@ public class HeapPage implements Page {
      * @return the number of bytes in the header of a page in a HeapFile with each tuple occupying tupleSize bytes
      */
     private int getHeaderSize() {        
-        
-        // some code goes here
-        return 0;
+        // size of header (bits) = Ceiling(number of tuples) (1 bit/tuple)
+        // size of header (bytes) = Ceiling(number of tuples / 8)
+        // ceiling: if there are any remaining bits that don't fit perfectly into a
+        // byte, an additional byte is allocated
+        return (int) Math.ceil(getNumTuples() / 8.0);
                  
     }
     
@@ -117,8 +121,7 @@ public class HeapPage implements Page {
      * @return the PageId associated with this page.
      */
     public HeapPageId getId() {
-    // some code goes here
-    throw new UnsupportedOperationException("implement this");
+        return pid;
     }
 
     /**
@@ -287,16 +290,22 @@ public class HeapPage implements Page {
      * Returns the number of empty slots on this page.
      */
     public int getNumEmptySlots() {
-        // some code goes here
-        return 0;
+        int emptyCount = 0;
+        for (int i = 0; i < getNumTuples(); i++) {
+            if (!isSlotUsed(i)) {
+                emptyCount++;
+            }
+        }
+        return emptyCount;
     }
 
     /**
      * Returns true if associated slot on this page is filled.
      */
     public boolean isSlotUsed(int i) {
-        // some code goes here
-        return false;
+        int byteIndex = i / 8; // get corresponding byte in header
+        int bitIndex = i % 8; // get position of bit i in that byte
+        return (header[byteIndex] & (1 << bitIndex)) != 0;
     }
 
     /**
@@ -312,8 +321,13 @@ public class HeapPage implements Page {
      * (note that this iterator shouldn't return tuples in empty slots!)
      */
     public Iterator<Tuple> iterator() {
-        // some code goes here
-        return null;
+        List<Tuple> tupleList = new ArrayList<>();
+        for (int i = 0; i < numSlots; i++) {
+            if(isSlotUsed(i)) {
+                tupleList.add(tuples[i]);
+            }
+        }
+        return tupleList.iterator();
     }
 
 }
