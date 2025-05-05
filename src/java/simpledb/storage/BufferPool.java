@@ -8,7 +8,9 @@ import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
 import java.io.*;
-
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -33,6 +35,9 @@ public class BufferPool {
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
 
+    private final int numPages; // maximum pages in the buffer pool
+    private final Map<PageId, Page> pageCache; // cache for pages
+
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -40,6 +45,8 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         // some code goes here
+        this.numPages = numPages;
+        this.pageCache = new HashMap<>();
     }
     
     public static int getPageSize() {
@@ -71,10 +78,25 @@ public class BufferPool {
      * @param pid the ID of the requested page
      * @param perm the requested permissions on the page
      */
-    public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
+    public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
-        return null;
+    
+        // If page is in cache, return it
+        if (pageCache.containsKey(pid)) {
+            return pageCache.get(pid);
+        }
+
+        // If page not in cache, add to pool
+        if (pageCache.size() >= numPages) {
+            evictPage(); // temporary impl
+        }
+        // Load the page from disk, add to buffer pool
+        DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
+        Page page = dbFile.readPage(pid);
+        pageCache.put(pid, page);
+    
+        return page;
     }
 
     /**
@@ -207,6 +229,15 @@ public class BufferPool {
     private synchronized  void evictPage() throws DbException {
         // some code goes here
         // not necessary for lab1
+
+        // lab1 impl
+        if (pageCache.isEmpty()) {
+            throw new DbException("Buffer pool is empty");
+        }
+        // Evict a random page
+        Iterator<PageId> pageIterator = pageCache.keySet().iterator();
+        PageId pageId = pageIterator.next();
+        pageCache.remove(pageId);
     }
 
 }

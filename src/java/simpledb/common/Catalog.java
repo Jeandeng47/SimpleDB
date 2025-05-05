@@ -44,8 +44,8 @@ public class Catalog {
      */
     public Catalog() {
         // some code goes here
-        idToTables = new ConcurrentHashMap<>();
-        nameToId = new ConcurrentHashMap<>();
+        idToTables = new HashMap<>();
+        nameToId = new HashMap<>();
     }
 
     
