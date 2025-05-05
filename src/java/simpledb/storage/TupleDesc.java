@@ -10,6 +10,9 @@ import java.util.*;
  */
 public class TupleDesc implements Serializable {
 
+    private TDItem[] tdItems;
+    private int numFields;
+
     /**
      * A help class to facilitate organizing the information of each field
      * */
@@ -44,8 +47,24 @@ public class TupleDesc implements Serializable {
      * */
     public Iterator<TDItem> iterator() {
         // some code goes here
-        return null;
+        return new TDIterator();
     }
+
+    private class TDIterator implements Iterator<TDItem> {
+        private int index = 0;
+
+        public boolean hasNext() {
+            return index < numFields;
+        }
+
+        public TDItem next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            return tdItems[index++];
+        }
+    }
+           
 
     private static final long serialVersionUID = 1L;
 
@@ -62,6 +81,21 @@ public class TupleDesc implements Serializable {
      */
     public TupleDesc(Type[] typeAr, String[] fieldAr) {
         // some code goes here
+        if (typeAr.length == 0) {
+            throw new IllegalArgumentException("Type array must contain at least one entry");
+        }
+
+        if (typeAr.length != fieldAr.length) {
+            throw new IllegalArgumentException("Type and field arrays must be of the same length");
+        }
+
+        this.numFields = typeAr.length;
+        this.tdItems = new TDItem[this.numFields];
+
+        for (int i = 0; i < numFields; i++) {
+            this.tdItems[i] = new TDItem(typeAr[i], fieldAr[i]);
+        }
+
     }
 
     /**
@@ -74,6 +108,17 @@ public class TupleDesc implements Serializable {
      */
     public TupleDesc(Type[] typeAr) {
         // some code goes here
+        this(typeAr, new String[typeAr.length]);
+    }
+
+    // Construct TupleDesc with TDItems array
+    public TupleDesc(TDItem[] tdItems) {
+        // some code goes here
+        if (tdItems.length == 0) {
+            throw new IllegalArgumentException("TDItems array must contain at least one entry");
+        }
+        this.tdItems = tdItems;
+        this.numFields = tdItems.length;
     }
 
     /**
@@ -81,7 +126,7 @@ public class TupleDesc implements Serializable {
      */
     public int numFields() {
         // some code goes here
-        return 0;
+        return this.numFields;
     }
 
     /**
@@ -95,7 +140,10 @@ public class TupleDesc implements Serializable {
      */
     public String getFieldName(int i) throws NoSuchElementException {
         // some code goes here
-        return null;
+        if (i < 0 || i >= numFields) {
+            throw new NoSuchElementException("Index out of bounds");
+        }
+        return tdItems[i].fieldName; // could be null
     }
 
     /**
@@ -110,7 +158,10 @@ public class TupleDesc implements Serializable {
      */
     public Type getFieldType(int i) throws NoSuchElementException {
         // some code goes here
-        return null;
+        if (i < 0 || i >= numFields) {
+            throw new NoSuchElementException("Index out of bounds");
+        }
+        return tdItems[i].fieldType;
     }
 
     /**
@@ -124,7 +175,15 @@ public class TupleDesc implements Serializable {
      */
     public int fieldNameToIndex(String name) throws NoSuchElementException {
         // some code goes here
-        return 0;
+        if (name == null) {
+            throw new NoSuchElementException("Field name cannot be null");
+        }
+        for (int i = 0; i < numFields; i++) {
+            if (name.equals(tdItems[i].fieldName)) {
+                return i;
+            }
+        }
+        throw new NoSuchElementException("Field name not found");
     }
 
     /**
@@ -133,7 +192,11 @@ public class TupleDesc implements Serializable {
      */
     public int getSize() {
         // some code goes here
-        return 0;
+        int totalSize = 0;
+        for (TDItem item : tdItems) {
+            totalSize += item.fieldType.getLen();
+        }
+        return totalSize;
     }
 
     /**
@@ -148,7 +211,18 @@ public class TupleDesc implements Serializable {
      */
     public static TupleDesc merge(TupleDesc td1, TupleDesc td2) {
         // some code goes here
-        return null;
+        int totalFields = td1.numFields() + td2.numFields();
+        TDItem[] mergedItems = new TDItem[totalFields];
+
+        for (int i = 0; i < td1.numFields(); i++) {
+            mergedItems[i] = td1.tdItems[i];
+        }
+
+        for (int i = 0; i < td2.numFields(); i++) {
+            mergedItems[td1.numFields() + i] = td2.tdItems[i];
+        }
+
+        return new TupleDesc(mergedItems);
     }
 
     /**
@@ -164,13 +238,27 @@ public class TupleDesc implements Serializable {
 
     public boolean equals(Object o) {
         // some code goes here
-        return false;
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TupleDesc that = (TupleDesc) o;
+
+        if (this.numFields != that.numFields) return false;
+        for (int i = 0; i < this.numFields; i++) {
+            if (!this.tdItems[i].fieldType.equals(that.tdItems[i].fieldType)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public int hashCode() {
         // If you want to use TupleDesc as keys for HashMap, implement this so
         // that equal objects have equals hashCode() results
-        throw new UnsupportedOperationException("unimplemented");
+        Type[] types = new Type[numFields];
+        for (int i = 0; i < numFields; i++) {
+            types[i] = tdItems[i].fieldType;
+        }
+        return Arrays.hashCode(types);
     }
 
     /**
@@ -182,6 +270,13 @@ public class TupleDesc implements Serializable {
      */
     public String toString() {
         // some code goes here
-        return "";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < numFields; i++) {
+            sb.append(tdItems[i].toString());
+            if (i != numFields - 1) {
+                sb.append(", ");
+            }
+        }
+        return sb.toString();
     }
 }

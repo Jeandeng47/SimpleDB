@@ -12,6 +12,9 @@ import java.util.Iterator;
 public class Tuple implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    private TupleDesc tupleDesc; // schema of this tuple
+    private Field[] fields; // array of fields
+    private RecordId recordId; // location of this tuple on disk
 
     /**
      * Create a new tuple with the specified schema (type).
@@ -21,7 +24,11 @@ public class Tuple implements Serializable {
      *            instance with at least one field.
      */
     public Tuple(TupleDesc td) {
-        // some code goes here
+        if (td == null || td.numFields() == 0) {
+            throw new IllegalArgumentException("TupleDesc cannot be null or empty");
+        }
+        this.tupleDesc = td;
+        this.fields = new Field[td.numFields()];
     }
 
     /**
@@ -29,7 +36,7 @@ public class Tuple implements Serializable {
      */
     public TupleDesc getTupleDesc() {
         // some code goes here
-        return null;
+        return this.tupleDesc;
     }
 
     /**
@@ -38,7 +45,7 @@ public class Tuple implements Serializable {
      */
     public RecordId getRecordId() {
         // some code goes here
-        return null;
+        return this.recordId;
     }
 
     /**
@@ -49,6 +56,7 @@ public class Tuple implements Serializable {
      */
     public void setRecordId(RecordId rid) {
         // some code goes here
+        this.recordId = rid;
     }
 
     /**
@@ -61,6 +69,13 @@ public class Tuple implements Serializable {
      */
     public void setField(int i, Field f) {
         // some code goes here
+        if (i < 0 || i >= fields.length) {
+            throw new IndexOutOfBoundsException("Field index out of bounds");
+        }
+        if (f.getType() != tupleDesc.getFieldType(i)) {
+            throw new IllegalArgumentException("Field type mismatch");
+        }
+        this.fields[i] = f;
     }
 
     /**
@@ -71,7 +86,10 @@ public class Tuple implements Serializable {
      */
     public Field getField(int i) {
         // some code goes here
-        return null;
+        if (i < 0 || i >= fields.length) {
+            throw new IndexOutOfBoundsException("Field index out of bounds");
+        }
+        return this.fields[i];
     }
 
     /**
@@ -84,7 +102,16 @@ public class Tuple implements Serializable {
      */
     public String toString() {
         // some code goes here
-        throw new UnsupportedOperationException("Implement this");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < fields.length; i++) {
+            sb.append(fields[i].toString());
+            if (i == fields.length - 1) {
+                sb.append("\n");
+            } else {
+                sb.append("\t");
+            }
+        }
+        return sb.toString();
     }
 
     /**
@@ -94,7 +121,23 @@ public class Tuple implements Serializable {
     public Iterator<Field> fields()
     {
         // some code goes here
-        return null;
+        return new FieldIterator();
+        
+    }
+
+    private class FieldIterator implements Iterator<Field> {
+        private int index = 0;
+
+        public boolean hasNext() {
+            return index < fields.length;
+        }
+
+        public Field next() {
+            if (!hasNext()) {
+                throw new java.util.NoSuchElementException();
+            }
+            return fields[index++];
+        }
     }
 
     /**
@@ -103,5 +146,9 @@ public class Tuple implements Serializable {
     public void resetTupleDesc(TupleDesc td)
     {
         // some code goes here
+        if (td == null || td.numFields() == 0) {
+            throw new IllegalArgumentException("TupleDesc cannot be null or empty");
+        }
+        this.tupleDesc = td;
     }
 }
